@@ -12,43 +12,25 @@ pygame.display.set_caption("Doodle Jump")
 pygame.display.set_icon(pygame.image.load('Project/Doodle Jump/jumpDude.png'))
 screen = pygame.display.set_mode((1024, 600),0,32) #screen size
 
-def getCenter(thing): return width/2-(thing.get_width()/2), height/2-(thing.get_height()/2)
+
+fontLarge = pygame.font.Font(None,64)
+fontSmall = pygame.font.Font(None,32)
+def getCenter(thing,dx=0,dy=0): return width/2-(thing.get_width()/2)+dx, height/2-(thing.get_height()/2)+dy
 
 
 #BACKGROUND
 class Background():
 	def __init__(self):
-		self.bgT = pygame.image.load('Project/Doodle Jump/graph bg.png')
-		self.bgTx, self.bgTy = 0,0
-		screen.blit(self.bgT,(self.bgTx,self.bgTy))
-		self.bgB = self.bgT
-		self.bgBx, self.bgBy = 0,-1*height
-		screen.blit(self.bgB,(self.bgBx,self.bgBy))
+		self.image = pygame.image.load('Project/Doodle Jump/graph bg.png')
+		self.x, self.y = 0,0
+		screen.blit(self.image,(self.x,self.y))
 		self.scroll = 0
-		self.tiles = math.ceil(height / self.bgT.get_height()) + 1
-	def scroll(self, value=1):
-		self.bgTy += value
-		self.bgBy += value
-		if(self.bgTy>height-10): self.bgTy *=-1
-		if(self.bgBy>height-10): self.bgBy *=-1
-	def update(self,focus):
-		#self.bgTy += -1*focus.velY
-		#self.bgBy += -1*focus.velY
-
-		for i in range(0,self.tiles):
-			screen.blit(self.bgT, (0,self.bgT.get_height()*i-self.scroll))
-			screen.blit(self.bgB, (0,-1*(self.bgB.get_height()*i-self.scroll)))
-		self.scroll += focus.velY
-		if(abs(self.scroll)>self.bgT.get_height()): self.scroll = 0
-		#if(abs(self.bgTy)>height)
-		# if(self.bgTy>height-10): self.bgTy *= -1
-		# if(self.bgBy>height-10): self.bgBy *= -1
-		# if(self.bgTy<-10+height*-1): self.bgTy *= -1
-		# if(self.bgBy<-10+height*-1): self.bgBy *= -1
-		#if(self.bgTy>height-10 or self.bgTy<(height*-1)-10): self.bgTy *=-1
-		#if(self.bgBy>height-10 or self.bgBy<(height*-1)-10): self.bgBy *=-1
-		#screen.blit(self.bgT, (self.bgTx,self.bgTy))
-		#screen.blit(self.bgB, (self.bgBx,self.bgBy))
+		self.tiles = math.ceil(height / self.image.get_height()) + 2
+	def update(self,focusY=0):
+		for i in range(0,self.tiles): #three tiles
+			screen.blit(self.image, (0,(self.image.get_height()*i+self.scroll)-height)) #show those tiles
+		self.scroll += focusY #change center tile position
+		if(abs(self.scroll)>self.image.get_height()): self.scroll = 0 #loop tiles
 bg = Background()
 
 #JUMPER
@@ -58,51 +40,89 @@ class Jumper(pygame.sprite.Sprite):
 		self.image = pygame.image.load(pic) #load in the image
 		self.rect = self.image.get_rect()
 		self.x, self.y = getCenter(self.image)
-		screen.blit(self.image, (self.x,self.y)) #plop it on the screen
 		self.velX = 0 #velocity X
 		self.velY = 0 #velocity Y
-	def isCollide(self,group):
+		self.otherY = 0
+		self.update()
+	def collisions(self,group):
 		return pygame.sprite.spritecollide(self,group,False)
 	def update(self):
-		self.x += self.velX
-		self.y += (self.velY)*-1
-		if(self.velX>0): self.velX-=1
-		if(self.velX<0): self.velX+=1
-		self.rect.x, self.rect.y = self.x, self.y
-		screen.blit(self.image, (self.x,self.y))
+		self.x += self.velX #update x
+		self.y += (self.velY)*-1 #update y
+		self.otherY = self.velY
+		if(self.y-self.velY<75):
+			self.otherYI += 0.25
+			self.otherY += self.otherYI
+		else: self.otherYI = 0
+			
+
+		if(self.velX>0): self.velX-=1 #decrease velocity
+		if(self.velX<0): self.velX+=1 #so that you can stop
+
+		if(self.x<5): self.x = 0 #stay in bounds (left)
+		if(self.rect.right>width): self.x = width-self.rect.width #stay in bounds (right)
+
+		self.rect.x, self.rect.y = self.x, self.y #update collision box
+		screen.blit(self.image, (self.x,self.y)) #draw the dude
+	def reset(self):
+		self.x, self.y = getCenter(self.image)
+		self.velX = 0 #velocity X
+		self.velY = 0 #velocity Y
+		self.update()
 guy = Jumper('Project/Doodle Jump/jumpDude.png')
 
 
-
+plats = pygame.sprite.Group()
 class Platform(pygame.sprite.Sprite):
-	def __init__(self):
+	def __init__(self,x=450,y=height-100):
 		pygame.sprite.Sprite.__init__(self)
 		self.image = pygame.image.load('Project/Doodle Jump/greenPlatform.png') #load in the image
 		self.rect = self.image.get_rect()
-		self.x, self.y = getCenter(self.image)
-		self.y += 200
-		screen.blit(self.image, (self.x,self.y)) #plop it on the screen
-	def update(self):
+		self.startX, self.startY = x,y
+		self.x, self.y = x,y
+		plats.add(self)
+
+		self.update()
+	def update(self,focusY=0):
+		self.y += focusY
 		self.rect.x, self.rect.y = self.x, self.y
 		screen.blit(self.image, (self.x,self.y))
+	def reset(self):
+		self.y = self.startY
+		self.x = self.startX
+		self.otherY = 0
+		self.update()
+
 plat1 = Platform()
-plat2 = Platform()
-plat2.x += 100
-plats = pygame.sprite.Group()
-plats.add(plat1)
-plats.add(plat2)
+plat2 = Platform(600,400)
+plat3 = Platform(300,200)
+plat4 = Platform(400,0)
+
+
+class Score():
+	def __init__(self):
+		self.value = 0
+		self.scoreText = fontSmall.render("Score: {}".format(self.value),True,(0,0,0),None)
+		screen.blit(self.scoreText,(width-self.scoreText.get_width(),0))
+	def update(self):
+		self.scoreText = fontSmall.render("Score: {}".format(self.value),True,(0,0,0),None)
+		screen.blit(self.scoreText,(width-self.scoreText.get_width(),0))
+	def reset(self):
+		self.value = 0
+
+score = Score()
+
+
+#SPAWNS PLATFORMS
+for i in range(0,100):
+	if(randint(1,100)<90):
+		plats.add(Platform(randint(0,width-plat1.rect.width),-1*i*100))
 
 
 
- 
-isFalling = True
-guy.update()
-plats.update()
+
+alive = True
 while True: #game loop
-
-#################################################################################
-##################################INPUT##########################################
-#################################################################################
 	for event in pygame.event.get(): #events
 		match event.type:
 			case pygame.QUIT:
@@ -111,38 +131,80 @@ while True: #game loop
 				exit()
 			case _:
 				pass
-	keys = pygame.key.get_pressed() #keys
-	
-	if(keys[pygame.K_SPACE]): #if space, move bg
-		bg.scroll()
-	if(keys[pygame.K_a]): #move left in bounds
-		if(guy.x>0): guy.velX-=2
-	if(keys[pygame.K_d]): #move right in bounds
-		if((guy.x+guy.image.get_width())<width): guy.velX+=2
-	
 
-#################################################################################
-##################################UPDATE#########################################
-#################################################################################
-	
-	if(isFalling): #FALLING
-		if(guy.velY>-5): guy.velY -= 1 #don't fall too fast
-	if(guy.rect.bottom>height): #DEATH
-		guy.x, guy.y = getCenter(guy.image)
+	if(alive):
+	#################################################################################
+	##################################INPUT##########################################
+	#################################################################################
+		
+		keys = pygame.key.get_pressed() #keys
+		if(keys[pygame.K_a]): #move left in bounds
+			if(guy.x>0): guy.velX-=2
+			else: guy.velX = 0
+		if(keys[pygame.K_d]): #move right in bounds
+			if((guy.x+guy.image.get_width())<width): guy.velX+=2
+			else: guy.velX = 0
+		
 
-	if(len(guy.isCollide(plats))>0): #COLLIDE
-		guy.velY = 30
+	#################################################################################
+	##################################UPDATE#########################################
+	#################################################################################
+		
+		#FALLING
+		if(guy.velY>-10): guy.velY -= 0.5 #don't fall too fast
 
-	
+		#DEATH
+		if(guy.rect.bottom>height):
+			alive = False
+			guy.x, guy.y = getCenter(guy.image)
+
+		#COLLIDE
+		if(len(guy.collisions(plats))>0 and guy.velY<0): #did you collide with a plat and are you falling
+			for plat in guy.collisions(plats): #check that your feet are touching a platform
+				if(guy.rect.bottom<plat.rect.bottom and guy.rect.bottom>plat.rect.top):
+					guy.velY = 10
+		
+		#SCORE
+		if(int((plat1.y-guy.y)/10) > score.value): score.value = int((plat1.y-guy.y)/10)
+
+		
 
 
 
-#################################################################################
-##################################RENDER#########################################
-#################################################################################
-	pygame.display.flip()
-	clock.tick(60)
-	screen.fill((0,0,0))
-	bg.update(guy)
-	guy.update()
-	plats.update()
+	#################################################################################
+	##################################RENDER#########################################
+	#################################################################################
+		pygame.display.flip()
+		clock.tick(60)
+		screen.fill((0,0,0))
+		bg.update(guy.otherY+1)
+		plats.update(guy.otherY+1)
+		guy.update()
+		score.update()
+
+
+
+
+
+	#end game loop
+	else:
+		#DEATH
+		pygame.display.flip()
+		clock.tick(60)
+		screen.fill((0,0,0))
+		
+		loseText = fontLarge.render("YOU LOSE",True,(255,255,255),None)
+		resetText = fontSmall.render("Press space to reset",True,(255,255,255),None)
+		screen.blit(loseText,getCenter(loseText,0,-50))
+		screen.blit(resetText,(getCenter(resetText,0,50)))
+		
+
+		keys = pygame.key.get_pressed() #keys
+		#RESET
+		if(keys[pygame.K_SPACE]):
+			alive=True
+			guy.reset()
+			for plat in plats.sprites():
+				plat.reset()
+			score.reset()
+			
