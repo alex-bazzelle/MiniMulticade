@@ -35,9 +35,11 @@ bg = Background()
 
 #JUMPER
 class Jumper(pygame.sprite.Sprite):
-	def __init__(self, pic):
+	def __init__(self):
 		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.image.load(pic) #load in the image
+		self.right = pygame.image.load('Project/Doodle Jump/jumpDude.png') #load in the image
+		self.left = pygame.image.load('Project/Doodle Jump/jumpDudeL.png') #load in the image
+		self.image = self.right
 		self.rect = self.image.get_rect()
 		self.x, self.y = getCenter(self.image)
 		self.velX = 0 #velocity X
@@ -48,16 +50,10 @@ class Jumper(pygame.sprite.Sprite):
 		return pygame.sprite.spritecollide(self,group,False)
 	def update(self):
 		self.x += self.velX #update x
-		self.y += (self.velY)*-1 #update y
-		self.otherY = self.velY
-		if(self.y-self.velY<75):
-			self.otherYI += 0.25
-			self.otherY += self.otherYI
-		else: self.otherYI = 0
-			
+		if(self.y-self.velY>0): self.y += (self.velY)*-1 #update y
 
-		if(self.velX>0): self.velX-=1 #decrease velocity
-		if(self.velX<0): self.velX+=1 #so that you can stop
+		if(self.velX>0): self.velX-=1; self.image=self.right #decrease velocity
+		if(self.velX<0): self.velX+=1; self.image=self.left #so that you can stop
 
 		if(self.x<5): self.x = 0 #stay in bounds (left)
 		if(self.rect.right>width): self.x = width-self.rect.width #stay in bounds (right)
@@ -69,7 +65,7 @@ class Jumper(pygame.sprite.Sprite):
 		self.velX = 0 #velocity X
 		self.velY = 0 #velocity Y
 		self.update()
-guy = Jumper('Project/Doodle Jump/jumpDude.png')
+guy = Jumper()
 
 
 plats = pygame.sprite.Group()
@@ -80,7 +76,7 @@ class Platform(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect()
 		self.startX, self.startY = x,y
 		self.x, self.y = x,y
-		plats.add(self)
+		self.isBroken = False
 
 		self.update()
 	def update(self,focusY=0):
@@ -90,21 +86,51 @@ class Platform(pygame.sprite.Sprite):
 	def reset(self):
 		self.y = self.startY
 		self.x = self.startX
-		self.otherY = 0
 		self.update()
 
-plat1 = Platform()
-plat2 = Platform(600,400)
-plat3 = Platform(300,200)
-plat4 = Platform(400,0)
+class BrokenPlatform(Platform):
+	def __init__(self,x=450,y=height-100):
+		Platform.__init__(self)
+		self.image = pygame.image.load('Project/Doodle Jump/brownPlatform.png')
+		self.rect = self.image.get_rect()
+		self.startX, self.startY = x,y
+		self.x, self.y = x,y
+		self.stage = [self.image,pygame.image.load('Project/Doodle Jump/BrPlatAnim/BrPlat1.png'),
+						pygame.image.load('Project/Doodle Jump/BrPlatAnim/BrPlat2.png'),
+						pygame.image.load('Project/Doodle Jump/BrPlatAnim/BrPlat3.png'),
+						pygame.image.load('Project/Doodle Jump/BrPlatAnim/BrPlat4.png'),
+						pygame.image.load('Project/Doodle Jump/BrPlatAnim/BrPlat5.png')]
+		#plats.add(self)
+		
+
+		self.update()
+	def update(self,focusY=0):
+		self.y += focusY
+		self.rect.x, self.rect.y = self.x, self.y
+		screen.blit(self.image, (self.x,self.y))
+		if(self.isBroken): self.removePlat()
+	def removePlat(self):
+		index = self.stage.index(self.image) #find what stage it's at
+		if(index<5): #if it isn't at the end stage
+			self.image = self.stage[index+1] #increase the stage (aka next frame in animation)
+			self.y+=10
+		else: self.kill() #if we're at the last stage, die
+
+plat1 = Platform(); plats.add(plat1)
+plat2 = Platform(600,400); plats.add(plat2)
+plat3 = Platform(300,200); plats.add(plat3)
+plat4 = Platform(400,0); plats.add(plat4)
+
 
 
 class Score():
 	def __init__(self):
 		self.value = 0
+		self.high = 0
 		self.scoreText = fontSmall.render("Score: {}".format(self.value),True,(0,0,0),None)
 		screen.blit(self.scoreText,(width-self.scoreText.get_width(),0))
 	def update(self):
+		if(self.value>self.high): self.high = self.value
 		self.scoreText = fontSmall.render("Score: {}".format(self.value),True,(0,0,0),None)
 		screen.blit(self.scoreText,(width-self.scoreText.get_width(),0))
 	def reset(self):
@@ -114,9 +140,23 @@ score = Score()
 
 
 #SPAWNS PLATFORMS
-for i in range(0,100):
-	if(randint(1,100)<90):
-		plats.add(Platform(randint(0,width-plat1.rect.width),-1*i*100))
+def spawnPlatforms():
+	for i in range(0,100): #makes 100 normal platforms
+		platY = -1*i*90 #the spacing between platforms
+		plats.add(Platform(randint(0,width-plat1.rect.width),platY)) #adds the platform
+		if(randint(0,100)<30): # 30% chance to add a broken platform
+			newPlat = BrokenPlatform(randint(0,width-plat1.rect.width),platY+randint(plat1.rect.height+20,200)) #randomize height
+			if(len(pygame.sprite.spritecollide(newPlat,plats,False))==0): #if it isn't colliding with a platform
+				plats.add(newPlat) #add it!
+spawnPlatforms()
+
+def recyclePlatforms(lowPlat,highPlat):
+	lowPlat.kill() #remove it from the group
+	lowPlat.y = (highPlat.y-90)
+	lowPlat.x = randint(0,width-lowPlat.rect.width)
+	lowPlat.isBroken = False
+	return lowPlat
+
 
 
 
@@ -149,9 +189,9 @@ while True: #game loop
 	#################################################################################
 	##################################UPDATE#########################################
 	#################################################################################
-		
+
 		#FALLING
-		if(guy.velY>-10): guy.velY -= 0.5 #don't fall too fast
+		if(guy.velY>=-10): guy.velY -= 0.5 #don't fall too fast
 
 		#DEATH
 		if(guy.rect.bottom>height):
@@ -159,13 +199,29 @@ while True: #game loop
 			guy.x, guy.y = getCenter(guy.image)
 
 		#COLLIDE
-		if(len(guy.collisions(plats))>0 and guy.velY<0): #did you collide with a plat and are you falling
+		if(len(guy.collisions(plats))>0 and guy.velY<-0.5): #did you collide with a plat and are you falling
+			
 			for plat in guy.collisions(plats): #check that your feet are touching a platform
 				if(guy.rect.bottom<plat.rect.bottom and guy.rect.bottom>plat.rect.top):
-					guy.velY = 10
+					if(isinstance(plat,BrokenPlatform)): #broken platform
+						plat.isBroken = True
+					elif(isinstance(plat,Platform)): #normal platform
+						guy.velY = 10 #jump
 		
 		#SCORE
 		if(int((plat1.y-guy.y)/10) > score.value): score.value = int((plat1.y-guy.y)/10)
+
+
+			
+		
+		#honestly im not really sure, but it messes up without this
+		guy.otherY = guy.velY
+		if(guy.y-guy.velY<50):
+			guy.otherY+= 10
+
+		#recycle plats
+		if(plats.sprites()[1].y > 1000): #if a platform is way off screen
+			plats.add(recyclePlatforms(plats.sprites()[1],plats.sprites()[-1]))
 
 		
 
@@ -177,8 +233,8 @@ while True: #game loop
 		pygame.display.flip()
 		clock.tick(60)
 		screen.fill((0,0,0))
-		bg.update(guy.otherY+1)
-		plats.update(guy.otherY+1)
+		bg.update(guy.otherY)
+		plats.update(guy.otherY)
 		guy.update()
 		score.update()
 
@@ -193,9 +249,11 @@ while True: #game loop
 		clock.tick(60)
 		screen.fill((0,0,0))
 		
-		loseText = fontLarge.render("YOU LOSE",True,(255,255,255),None)
+		scoreText = fontLarge.render("Score: {}".format(score.value),True,(255,255,255),None)
+		highScoreText = fontSmall.render("High Score: {}".format(score.high),True,(255,255,255),None)
 		resetText = fontSmall.render("Press space to reset",True,(255,255,255),None)
-		screen.blit(loseText,getCenter(loseText,0,-50))
+		screen.blit(scoreText,getCenter(scoreText,0,-50))
+		screen.blit(highScoreText,getCenter(highScoreText,0,0))
 		screen.blit(resetText,(getCenter(resetText,0,50)))
 		
 
