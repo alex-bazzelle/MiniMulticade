@@ -1,0 +1,279 @@
+#pokemon!!!
+import pygame
+import os
+from time import sleep
+
+DEBUG = False
+#TODO:
+# -take care of text wrapping
+
+pygame.init() #initialize pygame
+assetPath = "Project/Pokemon" #path for all of the images
+
+#quality of life
+width = 1024 #width of the screen
+height = 600 #height of the screen
+clock = pygame.time.Clock() #clock for managing framerate
+screen = pygame.display.set_mode((width, height),0,32) #give you a screen to play on
+fontLarge = pygame.font.Font(None,64) #big boy font
+fontSmall = pygame.font.Font(None,32) #small boy font
+def image(value): #function to add the directory to image file names
+	return os.path.join(assetPath,value)
+def getCenter(thing,dx=0,dy=0): #get the center of objects. dx and dy are to change it
+	return width/2-(thing.get_width()/2)+dx, height/2-(thing.get_height()/2)+dy
+
+#window
+pygame.display.set_caption("Pokemon") #window title
+pygame.display.set_icon(pygame.image.load(image("pokeball.png"))) #window icon
+
+##############
+#---LAYOUT---#
+##############
+class StaticBackground():
+    def __init__(self):
+        self.bottomBar = pygame.image.load(image("textbg.png"))
+        self.playerHealthBar = pygame.image.load(image("healthbar.png"))
+        self.opponentHealthBar = pygame.image.load(image("healthbar.png"))
+        self.platformOpponent = pygame.image.load(image("platformOpponent.png"))
+        self.platformPlayer = pygame.image.load(image("platformPlayer.png"))
+        self.opponentPokemon = pygame.image.load(image("ladyMist.png"))
+        self.playerPokemon = pygame.image.load(image("techy.png"))
+    def update(self):
+        screen.blit(self.bottomBar,(0,height-self.bottomBar.get_height()))
+        screen.blit(self.playerHealthBar,(width-self.playerHealthBar.get_width(),height-self.bottomBar.get_height()-self.playerHealthBar.get_height()))
+        screen.blit(self.opponentHealthBar,(0,self.opponentHealthBar.get_height()-self.opponentHealthBar.get_height()/2))
+        screen.blit(self.platformOpponent,getCenter(self.platformOpponent,width/4,-height/7))
+        screen.blit(self.platformPlayer,(145,height-self.bottomBar.get_height()-self.platformPlayer.get_height()))
+        screen.blit(self.opponentPokemon,getCenter(self.opponentPokemon,width/4,-height/4))
+        screen.blit(self.playerPokemon,(145+self.platformPlayer.get_width()/2-self.playerPokemon.get_width()/2,height-self.bottomBar.get_height()-self.playerPokemon.get_height()))
+bg = StaticBackground()
+
+
+
+##############
+#----MOVE----#
+##############
+class MonMove():
+    def __init__(self,title="moveName",type="moveType",desc="moveDesc",pp=20,accuracy=100,power=10):
+        self.title = title
+        self.type = type
+        self.desc = desc
+        self.totalPP = pp
+        self.currentPP = pp
+        self.accuracy = accuracy
+        self.power = power
+        
+
+
+
+
+##############
+#----MONS----#
+##############
+class Pokemon():
+    def __init__(self,name="MISSINGNO",monIm="pokeball.png",owner="player"):
+        self.name = name
+        self.image = pygame.image.load(image(monIm))
+        if(owner == "player"):
+            self.pos = (145+bg.platformPlayer.get_width()/2-self.image.get_width()/2,height-bg.bottomBar.get_height()-self.image.get_height())
+        if(owner == "opponent"):
+            self.pos = getCenter(self.image,width/4,-height/4)
+        self.totalHP = 100
+        self.currentHP = 100
+        self.lvl = 24
+        self.move1 = MonMove()
+        self.move2 = MonMove()
+        self.move3 = MonMove()
+        self.move4 = MonMove()
+    def update(self):
+        screen.blit(self.image,self.pos)
+
+techy = Pokemon("TECHY","techy.png","player")
+techy.move1 = MonMove("bite","normal","take a chomp")
+techy.move2 = MonMove("Tail Whip")
+ladyMist = Pokemon("LADY MIST","ladyMist.png","opponent")
+playerMon = techy
+oppMon = ladyMist
+
+
+
+
+
+
+
+
+##############
+#----TEXT----#
+##############
+font = pygame.font.Font(image("pokeFont.ttf"),12)
+class MainText():
+    def __init__(self):
+        self.words = ""
+        self.goal = "Sample Text"
+        self.textbox = font.render(self.words,False,(0,0,0),(255,255,255))
+        self.x = 20
+        self.y = height-bg.bottomBar.get_height()+30
+    def update(self):
+        if(self.words!=self.goal): self.words = self.newText() #if not at goal phrase, add a letter
+        self.textbox = font.render("{}".format(self.words),False,(0,0,0),None)
+        screen.blit(self.textbox,(self.x,self.y))
+    def newText(self):
+        strLen = len(list(self.goal))
+        wrdLen = len(list(self.words))
+        if(wrdLen<strLen): #ensures that, in case something fucks up, this will eventually stop adding text
+            self.words += list(self.goal)[wrdLen]
+            return self.words
+        else: return "ERROR: SOMETHING WENT INCREDIBLY WRONG"
+text = MainText()
+
+
+##############
+#----SLOT----#
+##############
+class SlotText():
+    def __init__(self,position=0):
+        self.words = "slot"
+        self.textbox = font.render(self.words,False,(0,0,0),None)
+        match position:
+            case 0: self.pos = (width/8*4+120, height/9*7) #top left
+            case 1: self.pos = (width/8*6+100, height/9*7) #top right
+            case 2: self.pos = (317*2, height-30*2) #bottom left
+            case 3: self.pos = (width/8*6+100, height-30*2) #bottom right
+    def update(self):
+        self.textbox = font.render(self.words,False,(0,0,0),None)
+        screen.blit(self.textbox,self.pos)
+
+slots = [SlotText(0),SlotText(1),SlotText(2),SlotText(3),"Menu"]
+def updateSlots(slots):
+    for i in range(0,4): slots[i].update()
+
+
+def setMenu(slots):
+    slots[0].words = "Moves"
+    slots[1].words = "TODO" #pokemon
+    slots[2].words = "TODO" #items
+    slots[3].words = "Exit"
+    slots[4] = "Menu"
+def moves(slots):
+    slots[0].words = playerMon.move1.title
+    slots[1].words = playerMon.move2.title
+    slots[2].words = playerMon.move3.title
+    slots[3].words = playerMon.move4.title
+    slots[4] = "Moves"
+setMenu(slots)
+
+##############
+#---CLICKS---#
+##############
+class Pointer():
+    def __init__(self):
+        self.stages = [pygame.image.load(image("pointerWhite.png")),pygame.image.load(image("pointerBlack.png"))]
+        self.image = self.stages[0]
+
+        self.blinkDelay = 20
+
+        self.tl = (width/8*4+90-self.image.get_width(), height/9*7-20) #top left
+        self.tr = (width/8*4+280, height/9*7-20) #top right
+        self.bl = (width/8*4+90-self.image.get_width(), height/9*7-30+(self.image.get_height()*2)) #bottom left
+        self.br = (width/8*4+280, height/9*7-30+(self.image.get_height()*2)) #bottom right
+        self.pos = self.tl
+    def update(self):
+        if(self.blinkDelay<0):
+            if(self.image == self.stages[0]): self.image=self.stages[1]
+            else: self.image=self.stages[0]
+            self.blinkDelay=20
+        screen.blit(self.image,self.pos)
+        self.blinkDelay -= 1
+    def moveLeft(self):
+        if(self.pos == self.tr): self.pos = self.tl
+        elif(self.pos == self.br): self.pos = self.bl
+    def moveRight(self):
+        if(self.pos == self.tl): self.pos = self.tr
+        elif(self.pos == self.bl): self.pos = self.br
+    def moveUp(self):
+        if(self.pos == self.bl): self.pos = self.tl
+        elif(self.pos == self.br): self.pos = self.tr
+    def moveDown(self):
+        if(self.pos == self.tr): self.pos = self.br
+        elif(self.pos == self.tl): self.pos = self.bl
+
+pointer = Pointer()
+
+
+
+#################################################################################
+####--------------------------------GAME LOOP--------------------------------####
+#################################################################################
+alive = True
+text.goal = "What will {} do?".format(playerMon.name)
+while(True):
+    for event in pygame.event.get():
+        match event.type:
+            case pygame.QUIT:
+                pygame.quit()
+                print("\n\n GAME QUIT \n\n")
+                exit()
+            case _:
+                pass
+    if(alive):
+	#################################################################################
+	####----------------------------------INPUT----------------------------------####
+	#################################################################################
+        keys = pygame.key.get_pressed()
+        #if(keys[pygame.K_SPACE]): #HOW TO USE TEXT
+        #    text.words = ""
+        #    text.goal = "gerber life is accepting applications for its new affordable growup plan"
+        if(keys[pygame.K_w]): pointer.moveUp()
+        if(keys[pygame.K_a]): pointer.moveLeft()
+        if(keys[pygame.K_d]): pointer.moveRight()
+        if(keys[pygame.K_s]): pointer.moveDown()
+
+
+        if(keys[pygame.K_SPACE]):
+            text.words = ""
+            text.goal = "gerber life is accepting applications for its affordable growup plan"
+            match pointer.pos:
+                case pointer.tl:
+                    if(slots[-1]=="Menu"): moves(slots); sleep(0.5) #moves
+                    elif(slots[-1]=="Moves"): print("move 1"); sleep(0.5) #move 1
+                case pointer.tr:
+                    if(slots[-1]=="Menu"): text.words = ""; text.goal = "Pokemon List"; sleep(0.5) #pokemon
+                    elif(slots[-1]=="Moves"): print("move 2"); sleep(0.5) #move 2
+                case pointer.bl:
+                    if(slots[-1]=="Menu"): print("items"); sleep(0.5) #items
+                    elif(slots[-1]=="Moves"): print("move 3"); sleep(0.5) #move 3
+                case pointer.br:
+                    if(slots[-1]=="Menu"): pygame.quit(); exit() #exit
+                    elif(slots[-1]=="Moves"): print("move 4"); sleep(0.5) #move 4
+                case _: pass
+        if(keys[pygame.K_ESCAPE]): setMenu(slots)
+        
+
+
+
+
+	#################################################################################
+	####----------------------------------UPDATE---------------------------------####
+	#################################################################################
+
+
+
+
+
+
+
+	#################################################################################
+	####----------------------------------RENDER---------------------------------####
+	#################################################################################
+        pygame.display.flip()
+        clock.tick(60)
+        screen.fill((200,200,200)) #default bg color is light gray.
+        bg.update()
+        text.update()
+        updateSlots(slots)
+        pointer.update()
+        playerMon.update()
+        oppMon.update()
+
+
+    
