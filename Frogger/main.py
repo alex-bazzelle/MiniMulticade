@@ -12,7 +12,7 @@ import os
 
 DEBUG = False
 """ ==== Define constants ==== """
-SCREEN_WIDTH = 879
+SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 600
 FPS = 300
 
@@ -33,7 +33,7 @@ assetPath_sounds = "Assets\sounds"
 
 class MainMenu:
     def __init__(self):
-        self.blank = pygame.image.load(image("menu3.jpg"))
+        self.blank = pygame.image.load(image("menu4.png"))
         self.buttonPos = self.blank.get_width() / 2
         self.resume = pygame.image.load(image("resume.png"))
         self.resumePos = getCenter(self.resume, -10, (SCREEN_HEIGHT / 7.2))
@@ -284,7 +284,7 @@ def death(lives):
 
 
 def car_Spawn(diff):
-    for i in range(diff):
+    for i in range(2 + diff):
         x = randrange(0, SCREEN_WIDTH)
         overlapping = True
         speed = 4
