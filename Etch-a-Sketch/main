@@ -1,0 +1,93 @@
+import pygame, sys
+from pygame.locals import *
+
+pygame.init()
+
+#create game window
+width = 1024
+height = 600
+
+screen = pygame.display.set_mode((width, height))
+pygame.display.set_caption('etch-a-sketch')
+
+#some variables
+x = width / 2
+y = height / 2
+speed = 2
+r = 2
+cooldown = 0
+
+#color
+black = (0, 0, 0)
+
+clock = pygame.time.Clock()
+
+#load background
+bg_image = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/etch a sketch/assets/bg.png').convert_alpha()
+img = pygame.transform.scale(bg_image, (width, height))
+
+#function for drawing background
+def draw_bg():
+    screen.blit(img, (0,0))
+
+run = True
+while run:
+    clock.tick(60)
+
+    # draw background
+    draw_bg()
+    
+    #draw the dot
+    pygame.draw.circle(img, (0, 0, 0), (x, y), r)
+    
+    #get key presses
+    key = pygame.key.get_pressed()
+    #move the dot around
+    if key[pygame.K_w]:
+        x += speed
+    if key[pygame.K_s]:
+        x -= speed
+    if key[pygame.K_a]:
+        y += speed
+    if key[pygame.K_d]:
+        y -= speed
+        
+    #increase thickness of the dot
+    if key[pygame.K_e] and r < 8 and cooldown == 0:
+        r += 2
+        cooldown = 50
+    if key[pygame.K_e] and r >= 8:
+        r = 2
+        cooldown = 50
+
+    if cooldown > 0:
+        cooldown -= 2
+        
+    #ensure that dot stays on the screen
+    if x > 920 - r:
+        x = 104 + r
+    if x < 104 + r:
+        x = 920 - r
+    if y > 499 - r:
+        y = 104 + r
+    if y < 104 + r:
+        y = 499 - r
+
+    # event handler
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+        elif event.type == KEYDOWN and event.key == K_ESCAPE:
+            run = False
+        #reset/clear the screen
+        elif event.type == KEYDOWN and event.key == K_q:
+            img = pygame.transform.scale(bg_image, (width, height))
+            x = width / 2
+            y = height / 2
+            r = 2
+
+    # update display
+    pygame.display.update()
+
+#exits game
+pygame.QUIT
