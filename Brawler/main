@@ -1,1 +1,155 @@
+import pygame
+from fighter import Fighter
 
+#initialize pygame
+pygame.init()
+#get keypresses
+key = pygame.key.get_pressed()
+
+#create game window
+width = 1024
+height = 600
+
+pygame.display.set_caption("Fighting Game")
+screen = pygame.display.set_mode((width, height), 0, 32)  # screen size
+
+#set framerate
+clock = pygame.time.Clock()
+FPS = 60
+
+#define colors
+RED = (255, 0, 0)
+YELLOW = (255, 255, 0)
+WHITE = (255, 255, 255)
+
+#define game variables
+intro_count = 3
+last_count_update = pygame.time.get_ticks()
+score = [0,0]#player scores [P1,P2]
+round_over = False
+ROUND_OVER_COOLDOWN = 2000
+round_timer = 120
+
+#define fighter variables
+FIGHTER_1_SIZE = [73.0, 75.0]
+FIGHTER_1_SCALE = 2.5
+FIGHTER_1_OFFSET = [15.0, -5.0]
+FIGHTER_1_DATA = [FIGHTER_1_SIZE, FIGHTER_1_SCALE, FIGHTER_1_OFFSET]
+FIGHTER_2_SIZE = [73.0, 75.0]
+FIGHTER_2_SCALE = 2.5
+FIGHTER_2_OFFSET = [15.0, -5.0]
+FIGHTER_2_DATA = [FIGHTER_2_SIZE, FIGHTER_2_SCALE, FIGHTER_2_OFFSET]
+
+#load background
+bg_image = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/brawler/assets/background.png').convert_alpha()
+
+#load spritesheets
+fighter_1_sheet = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/brawler/assets/fighter1.png').convert_alpha()
+fighter_2_sheet = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/brawler/assets/fighter2.png').convert_alpha()
+
+#load victory image
+victory_img = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/brawler/assets/victory.png').convert_alpha()
+
+#define number of steps in each animation
+FIGHTER_1_ANIMATION_STEPS = [3, 3, 2, 2, 2]
+FIGHTER_2_ANIMATION_STEPS = [3, 3, 2, 2, 2]
+
+#define font
+count_font = pygame.font.Font('C:/Users/ryenj/OneDrive/Documents/brawler/assets/Turok.ttf', 80)
+score_font = pygame.font.Font('C:/Users/ryenj/OneDrive/Documents/brawler/assets/Turok.ttf', 30)
+
+#function for drawing text
+def draw_text(text, font, text_col, x, y):
+    img = font.render(text, True, text_col)
+    screen. blit(img, (x, y))
+
+#function for drawing background
+def draw_bg():
+    screen.blit(bg_image, (0,0))
+
+#function for drawing fighter's health bar
+def draw_health_bar(health, x, y):
+    ratio = health / 100
+    pygame.draw.rect(screen, WHITE, (x-2, y-2, 404, 33))
+    pygame.draw.rect(screen, RED, (x, y, 400, 30))
+    pygame.draw.rect(screen, YELLOW, (x, y, 400 * ratio, 30))
+
+#create two instances of fighters
+fighter_1 = Fighter(1, False, 200, 250, FIGHTER_1_DATA, fighter_1_sheet, FIGHTER_1_ANIMATION_STEPS)
+fighter_2 = Fighter(2, True, 700, 250, FIGHTER_2_DATA, fighter_2_sheet, FIGHTER_2_ANIMATION_STEPS)
+
+alive = True
+while alive:
+
+    clock.tick(FPS)
+
+    #draw background
+    draw_bg()
+
+    #show player stats
+    draw_health_bar(fighter_1.health, 20, 10)
+    draw_health_bar(fighter_2.health, 604, 10)
+    draw_text("P1: " + str(score[0]), score_font, RED, 20, 35)
+    draw_text("P2: " + str(score[1]), score_font, RED, 604, 35)
+
+    #update countdown
+    if intro_count == 0:
+        # move fighter
+        fighter_1.move(width, height, screen, fighter_2, round_over)
+        fighter_2.move(width, height, screen, fighter_1, round_over)
+
+        #display round timer
+        draw_text(str(round_timer), score_font, RED, width/2 - 15, 10)
+        if (pygame.time.get_ticks() - last_count_update) >= 1000 and round_over == False:
+            round_timer -= 1
+            last_count_update = pygame.time.get_ticks()
+    else:
+        #display count timer
+        draw_text(str(intro_count), count_font, RED, width/2, height/3)
+        #update count timer
+        if (pygame.time.get_ticks() - last_count_update) >= 1000:
+            intro_count -= 1
+            last_count_update = pygame.time.get_ticks()
+
+    #update fighters
+    fighter_1.update()
+    fighter_2.update()
+
+    #draw fighters
+    fighter_1.draw(screen)
+    fighter_2.draw(screen)
+
+    #check for player defeat
+    if round_over == False:
+        if fighter_1.health == 0 or round_timer == 0:
+            score[1] += 1
+            round_over = True
+            round_over_time = pygame.time.get_ticks()
+            round_timer = 120
+        elif fighter_2.health == 0 or round_timer == 0:
+            score[0] += 1
+            round_over = True
+            round_over_time = pygame.time.get_ticks()
+            round_timer = 120
+    else:
+        #display victory image
+        screen.blit(victory_img, (width/2, height/3))
+        if pygame.time.get_ticks() - round_over_time > ROUND_OVER_COOLDOWN:
+            round_over = False
+            intro_count = 3
+            fighter_1 = Fighter(1, False, 200, 250, FIGHTER_1_DATA, fighter_1_sheet, FIGHTER_1_ANIMATION_STEPS)
+            fighter_2 = Fighter(2, True, 700, 250, FIGHTER_2_DATA, fighter_2_sheet, FIGHTER_2_ANIMATION_STEPS)
+
+    if key[pygame.K_ESCAPE]:
+        pass
+
+    #event handler
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+    #update display
+    pygame.display.update()
+
+#exit game
+pygame.quit()
