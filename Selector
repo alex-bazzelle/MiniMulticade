@@ -1,0 +1,185 @@
+#game selector
+import pygame
+import os
+from subprocess import Popen
+
+
+DEBUG = False
+activeSELECTOR = True
+
+
+pygame.init() #initialize pygame
+assetPath = "Project/selectorAssets" #path for all of the images
+
+#quality of life
+width = 1024 #width of the screen
+height = 600 #height of the screen
+clock = pygame.time.Clock() #clock for managing framerate
+screen = pygame.display.set_mode((width, height),0,32) #give you a screen to play on
+def image(value:str): #function to add the directory to image file names
+	return os.path.join(assetPath,value)
+def getCenter(thing,dx=0,dy=0): #get the center of objects. dx and dy are to change it
+	return width/2-(thing.get_width()/2)+dx, height/2-(thing.get_height()/2)+dy
+fontLarge = pygame.font.Font(image("gameFont.ttf"),48) #big boy font
+fontSmall = pygame.font.Font(image("gameFont.ttf"),18) #small boy font
+fontExtraLarge = pygame.font.Font(image("titleFont.otf"),100) #small boy font
+
+titleColor = (79,194,247)
+gameColor = (50,114,156)
+
+#TEXT WRAPPING
+def textWrap(string:str, maxLength:int):
+    words = string.split() #split string into words
+    lines = [] #list of lines
+    line = "" #individual lines
+    for word in words:
+        if(len(line + word)>=maxLength): #first, check if you can add a word
+            lines.append(line) #if not, the line is done.
+            line = "" #reset line.
+
+        line += (word + " ") #add word to line
+
+    lines.append(line) #add the last line to the lines
+
+    return lines #a list of strings. each string is, a most, the specified max length
+
+#window
+
+pygame.display.set_caption("Mini Multicade") #window title
+pygame.display.set_icon(pygame.image.load(image("icon.png"))) #window icon
+
+sampleImage = pygame.image.load(image("sampleImage.png"))
+
+########################
+#       Background     #
+########################
+class Background():
+    def __init__(self):
+          self.title = fontExtraLarge.render("Mini Multicade",True,titleColor,None)
+          self.borders = pygame.image.load(image("borders.png"))
+    def update(self):
+         screen.blit(self.title,(5,5))
+         screen.blit(self.borders,(0,0))
+bg = Background()
+
+
+
+########################
+#         Game         #
+########################
+class Game():
+    def __init__(self,title:str,img="sampleImage.png"):
+        self.title = title
+        self.desc = "Sample Description"
+        self.image = pygame.image.load(image(img))
+    def setDesc(self,desc):
+        self.desc = desc
+
+
+Pokemon = Game("Pokemon","pokemonImage.png")
+Pokemon.setDesc("Play as either Techy or Lady Mist. Battle your opponent and try to win!")
+
+DoodleJump = Game("Doodle Jump")
+DoodleJump.setDesc("Jump on randomly spawning platforms. Try to get as high as you can!")
+gameList = [Pokemon,DoodleJump,Game("frogger")]
+
+
+########################
+#       Selector       #
+########################
+class Selector():
+    def __init__(self,games:list[Game]):
+        self.games = games
+        self.selectedGame = self.games[0]
+        self.header = height/5
+        self.spacing = height-height/6
+        self.border = pygame.image.load(image("overlay.png"))
+        self.border2 = pygame.image.load(image("overlayBlink.png"))
+        self.image = self.border
+        self.delay = 0
+    def update(self):
+        i=0
+        for game in self.games:
+            if(game!=self.selectedGame): #non selected games
+                screen.blit(fontLarge.render(game.title,True,gameColor),(10,self.header+(self.spacing*(i/len(self.games)))))
+            else: #selected game
+                if(self.delay>30 and self.image == self.border): self.image = self.border2; self.delay = 0
+                if(self.delay>30 and self.image == self.border2): self.image = self.border; self.delay = 0
+                self.delay += 1
+
+                screen.blit(self.image,(5,-5+self.header+(self.spacing*(i/len(self.games)))))
+                screen.blit(fontLarge.render(game.title,True,(255,255,255)),(10,self.header+(self.spacing*(i/len(self.games)))))
+            i += 1
+        screen.blit(self.selectedGame.image,(626,126))
+        words = textWrap(self.selectedGame.desc,35)
+        for word in words:
+            screen.blit(fontSmall.render(word,True,(255,255,255)),(width*(7/12)+20,height*(2/3)+(fontSmall.get_height()*words.index(word))))
+    def moveDown(self):
+        try: 
+            self.selectedGame = self.games[self.games.index(self.selectedGame)+1]
+        except: self.selectedGame = self.games[0]
+    def moveUp(self):
+        try: 
+            self.selectedGame = self.games[self.games.index(self.selectedGame)-1]
+        except: pass
+
+select = Selector(gameList)
+
+
+
+####################################################
+cooldown = 0
+maxCooldown = 20
+active = "Selector"
+
+while(True):
+    if(active == "Selector"):
+        cooldown += 1
+        for event in pygame.event.get():
+            match event.type:
+                case pygame.QUIT:
+                    pygame.quit()
+                    print("\n\n GAME QUIT \n\n")
+                    exit()
+                case _:
+                    pass
+
+
+        keys = pygame.key.get_pressed()
+        if(keys[pygame.K_s] and cooldown>maxCooldown):
+            select.moveDown()
+            cooldown = 0
+        if(keys[pygame.K_w] and cooldown>maxCooldown):
+            select.moveUp()
+            cooldown = 0
+        if(keys[pygame.K_SPACE] and cooldown>maxCooldown):
+            match select.selectedGame.title:
+                case "Pokemon": active = "Pokemon"
+                case "Doodle Jump": active = "Doodle Jump"
+                case _: pass
+            cooldown = 0
+        
+        
+
+
+
+
+
+        pygame.display.flip()
+        clock.tick(60)
+        screen.fill((0,50,51)) #default bg color is dark blue
+        select.update()
+        bg.update()
+    elif(active == "Pokemon"):
+        if(cooldown==0):
+            test = Popen(["python", "Project/Pokemon/Pokemon.py"]).wait()
+            cooldown = 1
+        if(test!=None): active = "Selector"
+
+    elif(active == "Doodle Jump"):
+        if(cooldown==0):
+            test = Popen(["python", "Project/Doodle Jump/DoodleJump.py"]).wait()
+            cooldown = 1
+        if(test!=None): active = "Selector"
+
+    else: print("error")
