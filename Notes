@@ -10,7 +10,9 @@ def image(value:str): #function to add the directory to image file names
 	return os.path.join(assetPath,value)
 #how to use: pygame.image.load(image("icon.png"))
 
-
+getCenter:
+def getCenter(thing,dx=0,dy=0): #get the center of objects. dx and dy are to change it
+	return width/2-(thing.get_width()/2)+dx, height/2-(thing.get_height()/2)+dy
 
 
 pause:
