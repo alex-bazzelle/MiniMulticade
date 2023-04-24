@@ -1,9 +1,76 @@
 Notes:
 LCD Display is 1024x600 pixels
 
+
+
 asset path:
 import os
 assetPath = "whateverFolder/whateverFolder"
 def image(value:str): #function to add the directory to image file names
 	return os.path.join(assetPath,value)
 #how to use: pygame.image.load(image("icon.png"))
+
+
+
+
+pause:
+##############
+#PAUSE SCREEN#
+##############
+class Pause():
+	def __init__(self):
+		self.blank = pygame.image.load(image("pausedBlank.png"))
+		self.buttonPos = self.blank.get_width()/4
+		self.resume = pygame.image.load(image("resume.png"))
+		self.resumePos = getCenter(self.resume,-1*self.buttonPos,40)
+		self.exit = pygame.image.load(image("exit.png"))
+		self.exitPos = getCenter(self.exit,self.buttonPos,40)
+		self.overlay = pygame.image.load(image("selectOverlay.png"))
+		self.selected = "resume"
+
+		self.cooldown = 0
+	def update(self):
+		screen.blit(self.blank, getCenter(self.blank))
+		screen.blit(self.resume,(self.resumePos))
+		screen.blit(self.exit,(self.exitPos))
+		if(self.selected == "resume"): screen.blit(self.overlay,self.resumePos)
+		if(self.selected == "exit"): screen.blit(self.overlay,self.exitPos)
+		if(DEBUG): print("pause update")
+	
+	def cooldownReset(self):
+		self.cooldown = 100
+
+pauseScreen = Pause()
+paused = False
+
+#with all the input stuff:
+if(keys[pygame.K_ESCAPE] and pauseScreen.cooldown<0):
+	pauseScreen.cooldownReset()
+	paused = True
+	if(DEBUG): print("pause start")
+pauseScreen.cooldown -= 1
+
+#make sure main code is split by if statements. a simple "if(not paused)" and "elif(paused)" should work
+	#################################################################################
+	####----------------------------------PAUSE----------------------------------####
+	#################################################################################
+	elif(alive and paused):
+		keys = pygame.key.get_pressed() #keys
+		if(keys[pygame.K_a]): #LEFT KEY
+			if(pauseScreen.selected == "exit"): pauseScreen.selected = "resume"
+		if(keys[pygame.K_d]): #RIGHT KEY
+			if(pauseScreen.selected == "resume"): pauseScreen.selected = "exit"
+		if(keys[pygame.K_SPACE] and pauseScreen.selected == "exit"):
+			pygame.quit()
+			exit()
+		if((keys[pygame.K_SPACE] and pauseScreen.selected == "resume") or (keys[pygame.K_ESCAPE]) and pauseScreen.cooldown<0):
+			if(DEBUG): print("pause escape")
+			paused = False
+			pauseScreen.cooldownReset()
+
+		clock.tick(60)
+		pygame.display.flip()
+		pauseScreen.update()
+		pauseScreen.cooldown -= 1
+		
+		
