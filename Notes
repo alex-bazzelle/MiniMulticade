@@ -1,2 +1,9 @@
 Notes:
 LCD Display is 1024x600 pixels
+
+asset path:
+import os
+assetPath = "whateverFolder/whateverFolder"
+def image(value:str): #function to add the directory to image file names
+	return os.path.join(assetPath,value)
+#how to use: pygame.image.load(image("icon.png"))
