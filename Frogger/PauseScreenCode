@@ -1,0 +1,73 @@
+FPS = 300
+
+class MainMenu:
+    def __init__(self):
+        self.blank = pygame.image.load(image("menu4.png"))
+        self.buttonPos = self.blank.get_width() / 2
+        self.resume = pygame.image.load(image("resume.png"))
+        self.resumePos = getCenter(self.resume, -10, (SCREEN_HEIGHT / 7.2))
+        self.exit = pygame.image.load(image("exit.png"))
+        self.exitPos = getCenter(self.exit, -10, (SCREEN_HEIGHT / 2.9))
+        self.overlay = pygame.image.load(image("selectOverlay.png"))
+        self.selected = "resume"
+        self.cooldown = 0
+
+    def update(self):
+        screen.blit(self.blank, getCenter(self.blank))
+        screen.blit(self.resume, self.resumePos)
+        screen.blit(self.exit, self.exitPos)
+        if self.selected == "resume":
+            screen.blit(self.overlay, self.resumePos)
+        if self.selected == "exit":
+            screen.blit(self.overlay, self.exitPos)
+        if DEBUG:
+            print("pause update")
+
+    def cooldownReset(self):
+        self.cooldown = 15
+        
+# Create a clock to control the frame rate of the game
+clock = pygame.time.Clock()
+
+(Inside running loop now)
+
+keys = pygame.key.get_pressed()
+        if keys[pygame.K_ESCAPE] and menu.cooldown < 0:
+            menu.cooldownReset()
+            paused = True
+            # Stop playing audio
+            pygame.mixer.music.stop()
+            # Load audio file
+            pygame.mixer.music.load(audio("frogger-music.mp3"))
+            # Start playing audio
+            pygame.mixer.music.play()
+            if DEBUG:
+                print("pause start")
+        menu.cooldown -= 1
+        
+# Cap the frame rate
+clock.tick(FPS)
+
+    elif alive and paused:
+        keys = pygame.key.get_pressed()  # keys
+        if keys[pygame.K_w]:  # UP KEY
+            if menu.selected == "exit":
+                menu.selected = "resume"
+        if keys[pygame.K_s]:  # DOWN KEY
+            if menu.selected == "resume":
+                menu.selected = "exit"
+        if keys[pygame.K_SPACE] and menu.selected == "exit":
+            pygame.quit()
+            exit()
+        if ((keys[pygame.K_SPACE] and menu.selected == "resume") or (
+                keys[pygame.K_ESCAPE]) and menu.cooldown < 0):
+            if DEBUG:
+                print("pause escape")
+            # Stop playing audio
+            pygame.mixer.music.stop()
+            # Load audio file
+            pygame.mixer.music.load(audio("frogger-ringtone.mp3"))
+            # Start playing audio
+            pygame.mixer.music.play()
+            paused = False
+            menu.cooldownReset()
