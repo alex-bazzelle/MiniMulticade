@@ -1,3 +1,3 @@
-from whackamole import Game
+from subprograms import Game
 
 theGame = Game(timer=30)
