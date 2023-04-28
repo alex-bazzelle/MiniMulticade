@@ -1,5 +1,7 @@
 import pygame
+from pygame.locals import *
 from fighter import Fighter
+import os
 
 #initialize pygame
 pygame.init()
@@ -12,6 +14,13 @@ height = 600
 
 pygame.display.set_caption("Fighting Game")
 screen = pygame.display.set_mode((width, height), 0, 32)  # screen size
+
+assetPath = "C:/Users/ryenj/OneDrive/Documents/brawler/assets"
+def image(value:str): #function to add the directory to image file names
+	return os.path.join(assetPath,value)
+
+def getCenter(thing,dx=0,dy=0): #get the center of objects. dx and dy are to change it
+	return width/2-(thing.get_width()/2)+dx, height/2-(thing.get_height()/2)+dy
 
 #set framerate
 clock = pygame.time.Clock()
@@ -31,32 +40,33 @@ ROUND_OVER_COOLDOWN = 2000
 round_timer = 120
 
 #define fighter variables
-FIGHTER_1_SIZE = [73.0, 75.0]
-FIGHTER_1_SCALE = 2.5
-FIGHTER_1_OFFSET = [15.0, -5.0]
+FIGHTER_1_SIZE = [50.0, 54.0]
+FIGHTER_1_SCALE = 3.9
+FIGHTER_1_OFFSET = [15.0, -3.0]
 FIGHTER_1_DATA = [FIGHTER_1_SIZE, FIGHTER_1_SCALE, FIGHTER_1_OFFSET]
-FIGHTER_2_SIZE = [73.0, 75.0]
-FIGHTER_2_SCALE = 2.5
-FIGHTER_2_OFFSET = [15.0, -5.0]
+FIGHTER_2_SIZE = [50.0, 54.0]
+FIGHTER_2_SCALE = 3.9
+FIGHTER_2_OFFSET = [15.0, -3.0]
 FIGHTER_2_DATA = [FIGHTER_2_SIZE, FIGHTER_2_SCALE, FIGHTER_2_OFFSET]
 
 #load background
-bg_image = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/brawler/assets/background.png').convert_alpha()
+bg_image = pygame.image.load(image('background.png')).convert_alpha()
+img = pygame.transform.scale(bg_image, (width, height))
 
 #load spritesheets
-fighter_1_sheet = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/brawler/assets/fighter1.png').convert_alpha()
-fighter_2_sheet = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/brawler/assets/fighter2.png').convert_alpha()
+fighter_1_sheet = pygame.image.load(image('fighter1.png')).convert_alpha()
+fighter_2_sheet = pygame.image.load(image('fighter2.png')).convert_alpha()
 
 #load victory image
-victory_img = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/brawler/assets/victory.png').convert_alpha()
+victory_img = pygame.image.load(image('victory.png')).convert_alpha()
 
 #define number of steps in each animation
 FIGHTER_1_ANIMATION_STEPS = [3, 3, 2, 2, 2]
 FIGHTER_2_ANIMATION_STEPS = [3, 3, 2, 2, 2]
 
 #define font
-count_font = pygame.font.Font('C:/Users/ryenj/OneDrive/Documents/brawler/assets/Turok.ttf', 80)
-score_font = pygame.font.Font('C:/Users/ryenj/OneDrive/Documents/brawler/assets/Turok.ttf', 30)
+count_font = pygame.font.Font(image('Turok.ttf'), 80)
+score_font = pygame.font.Font(image('Turok.ttf'), 30)
 
 #function for drawing text
 def draw_text(text, font, text_col, x, y):
@@ -66,6 +76,35 @@ def draw_text(text, font, text_col, x, y):
 #function for drawing background
 def draw_bg():
     screen.blit(bg_image, (0,0))
+
+
+#PAUSE SCREEN
+class Pause():
+    def __init__(self):
+        self.blank = pygame.transform.scale(pygame.image.load(image("menu.png")), (400, 400))
+        self.buttonPos = self.blank.get_width() / 4
+        self.resume = pygame.transform.scale(pygame.image.load(image("resume.png")), (120, 120))
+        self.resumePos = getCenter(self.resume, -50, 0)
+        self.exit = pygame.transform.scale(pygame.image.load(image("exit.png")), (130, 130))
+        self.exitPos = getCenter(self.exit, 65, 5)
+        self.overlay = pygame.transform.scale(pygame.image.load(image("Overlay.png")), (130, 130))
+        self.overlay2 = pygame.transform.scale(pygame.image.load(image("Overlay2.png")), (120, 120))
+        self.selected = "resume"
+
+        self.cooldown = 0
+
+    def update(self):
+        screen.blit(self.blank, getCenter(self.blank))
+        screen.blit(self.resume, (self.resumePos))
+        screen.blit(self.exit, (self.exitPos))
+        if (self.selected == "resume"): screen.blit(self.overlay2, self.resumePos)
+        if (self.selected == "exit"): screen.blit(self.overlay, self.exitPos)
+        if (DEBUG): print("pause update")
+
+    def cooldownReset(self):
+        self.cooldown = 100
+
+pauseScreen = Pause()
 
 #function for drawing fighter's health bar
 def draw_health_bar(health, x, y):
@@ -78,13 +117,18 @@ def draw_health_bar(health, x, y):
 fighter_1 = Fighter(1, False, 200, 250, FIGHTER_1_DATA, fighter_1_sheet, FIGHTER_1_ANIMATION_STEPS)
 fighter_2 = Fighter(2, True, 700, 250, FIGHTER_2_DATA, fighter_2_sheet, FIGHTER_2_ANIMATION_STEPS)
 
+paused = False
 alive = True
+DEBUG = True
 while alive:
 
     clock.tick(FPS)
 
     #draw background
     draw_bg()
+
+    # get key presses
+    key = pygame.key.get_pressed()
 
     #show player stats
     draw_health_bar(fighter_1.health, 20, 10)
@@ -93,7 +137,7 @@ while alive:
     draw_text("P2: " + str(score[1]), score_font, RED, 604, 35)
 
     #update countdown
-    if intro_count == 0:
+    if intro_count == 0 and not paused:
         # move fighter
         fighter_1.move(width, height, screen, fighter_2, round_over)
         fighter_2.move(width, height, screen, fighter_1, round_over)
@@ -103,6 +147,25 @@ while alive:
         if (pygame.time.get_ticks() - last_count_update) >= 1000 and round_over == False:
             round_timer -= 1
             last_count_update = pygame.time.get_ticks()
+    # PAUSE
+    elif paused:
+        if (key[pygame.K_a]):  # LEFT KEY
+            if (pauseScreen.selected == "exit"): pauseScreen.selected = "resume"
+        if (key[pygame.K_d]):  # RIGHT KEY
+            if (pauseScreen.selected == "resume"): pauseScreen.selected = "exit"
+        if (key[pygame.K_SPACE] and pauseScreen.selected == "exit"):
+            pygame.quit()
+            exit()
+        if ((key[pygame.K_SPACE] and pauseScreen.selected == "resume") or (
+                key[pygame.K_ESCAPE]) and pauseScreen.cooldown < 0):
+            if (DEBUG): print("pause escape")
+            paused = False
+            pauseScreen.cooldownReset()
+
+        clock.tick(60)
+        pygame.display.flip()
+        pauseScreen.update()
+        pauseScreen.cooldown -= 1
     else:
         #display count timer
         draw_text(str(intro_count), count_font, RED, width/2, height/3)
@@ -140,13 +203,17 @@ while alive:
             fighter_1 = Fighter(1, False, 200, 250, FIGHTER_1_DATA, fighter_1_sheet, FIGHTER_1_ANIMATION_STEPS)
             fighter_2 = Fighter(2, True, 700, 250, FIGHTER_2_DATA, fighter_2_sheet, FIGHTER_2_ANIMATION_STEPS)
 
-    if key[pygame.K_ESCAPE]:
-        pass
-
     #event handler
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        elif event.type == KEYDOWN and event.key == K_ESCAPE and pauseScreen.cooldown < 0:
+            pauseScreen.cooldownReset()
+            paused = True
+            if (DEBUG): print("pause start")
+        pauseScreen.cooldown -= 1
+
+    pauseScreen.cooldown -= 1
 
     #update display
     pygame.display.update()
