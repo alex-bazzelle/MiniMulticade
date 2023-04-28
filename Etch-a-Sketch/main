@@ -1,5 +1,6 @@
 import pygame, sys
 from pygame.locals import *
+import os
 
 pygame.init()
 
@@ -22,47 +23,112 @@ black = (0, 0, 0)
 
 clock = pygame.time.Clock()
 
+
+assetPath = "C:/Users/ryenj/OneDrive/Documents/etch a sketch/assets"
+def image(value:str): #function to add the directory to image file names
+	return os.path.join(assetPath,value)
+
+def getCenter(thing,dx=0,dy=0): #get the center of objects. dx and dy are to change it
+	return width/2-(thing.get_width()/2)+dx, height/2-(thing.get_height()/2)+dy
+
 #load background
-bg_image = pygame.image.load('C:/Users/ryenj/OneDrive/Documents/etch a sketch/assets/bg.png').convert_alpha()
+bg_image = pygame.image.load(image('bg.png')).convert_alpha()
 img = pygame.transform.scale(bg_image, (width, height))
 
 #function for drawing background
 def draw_bg():
     screen.blit(img, (0,0))
 
+#PAUSE SCREEN
+class Pause():
+    def __init__(self):
+        self.blank = pygame.transform.scale(pygame.image.load(image("menu.png")), (400, 400))
+        self.buttonPos = self.blank.get_width() / 4
+        self.resume = pygame.transform.scale(pygame.image.load(image("resume.png")), (120, 120))
+        self.resumePos = getCenter(self.resume, -50, 0)
+        self.exit = pygame.transform.scale(pygame.image.load(image("exit.png")), (120, 120))
+        self.exitPos = getCenter(self.exit, 50, 0)
+        self.overlay = pygame.transform.scale(pygame.image.load(image("Overlay.png")), (120, 120))
+        self.selected = "resume"
+
+        self.cooldown = 0
+
+    def update(self):
+        screen.blit(self.blank, getCenter(self.blank))
+        screen.blit(self.resume, (self.resumePos))
+        screen.blit(self.exit, (self.exitPos))
+        if (self.selected == "resume"): screen.blit(self.overlay, self.resumePos)
+        if (self.selected == "exit"): screen.blit(self.overlay, self.exitPos)
+        if (DEBUG): print("pause update")
+
+    def cooldownReset(self):
+        self.cooldown = 100
+
+pauseScreen = Pause()
+
+DEBUG = True
 run = True
+paused = False
 while run:
     clock.tick(60)
 
+    # get key presses
+    key = pygame.key.get_pressed()
+
     # draw background
     draw_bg()
-    
+
+    # with all the input stuff:
+    if (key[pygame.K_ESCAPE] and pauseScreen.cooldown < 0):
+        pauseScreen.cooldownReset()
+        paused = True
+        if (DEBUG): print("pause start")
+    pauseScreen.cooldown -= 1
+
     #draw the dot
     pygame.draw.circle(img, (0, 0, 0), (x, y), r)
-    
-    #get key presses
-    key = pygame.key.get_pressed()
-    #move the dot around
-    if key[pygame.K_w]:
-        x += speed
-    if key[pygame.K_s]:
-        x -= speed
-    if key[pygame.K_a]:
-        y += speed
-    if key[pygame.K_d]:
-        y -= speed
-        
-    #increase thickness of the dot
-    if key[pygame.K_e] and r < 8 and cooldown == 0:
-        r += 2
-        cooldown = 50
-    if key[pygame.K_e] and r >= 8:
-        r = 2
-        cooldown = 50
 
-    if cooldown > 0:
-        cooldown -= 2
-        
+    if run == True and not paused:
+        #move the dot around
+        if key[pygame.K_w]:
+            x += speed
+        if key[pygame.K_s]:
+            x -= speed
+        if key[pygame.K_a]:
+            y += speed
+        if key[pygame.K_d]:
+            y -= speed
+
+        #increase thickness of the dot
+        if key[pygame.K_e] and r < 8 and cooldown == 0:
+            r += 2
+            cooldown = 50
+        if key[pygame.K_e] and r >= 8:
+            r = 2
+            cooldown = 50
+
+        if cooldown > 0:
+            cooldown -= 2
+
+    elif run and paused:
+        if (key[pygame.K_a]):  # LEFT KEY
+            if (pauseScreen.selected == "exit"): pauseScreen.selected = "resume"
+        if (key[pygame.K_d]):  # RIGHT KEY
+            if (pauseScreen.selected == "resume"): pauseScreen.selected = "exit"
+        if (key[pygame.K_SPACE] and pauseScreen.selected == "exit"):
+            pygame.quit()
+            exit()
+        if ((key[pygame.K_SPACE] and pauseScreen.selected == "resume") or (
+        key[pygame.K_ESCAPE]) and pauseScreen.cooldown < 0):
+            if (DEBUG): print("pause escape")
+            paused = False
+            pauseScreen.cooldownReset()
+
+        clock.tick(60)
+        pygame.display.flip()
+        pauseScreen.update()
+        pauseScreen.cooldown -= 1
+
     #ensure that dot stays on the screen
     if x > 920 - r:
         x = 104 + r
@@ -73,11 +139,10 @@ while run:
     if y < 104 + r:
         y = 499 - r
 
+
     # event handler
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            run = False
-        elif event.type == KEYDOWN and event.key == K_ESCAPE:
             run = False
         #reset/clear the screen
         elif event.type == KEYDOWN and event.key == K_q:
