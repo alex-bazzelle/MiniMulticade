@@ -75,8 +75,9 @@ while run:
     # get key presses
     key = pygame.key.get_pressed()
 
-    # draw background
-    draw_bg()
+    if not paused:
+    	# draw background
+    	draw_bg()
 
     # with all the input stuff:
     if (key[pygame.K_ESCAPE] and pauseScreen.cooldown < 0):
