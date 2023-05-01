@@ -6,18 +6,16 @@ from .constants import GameConstants
 DEBUG = False
 
 
-class MainMenu(Game):
-    def __init__(self):
-        super().__init__()
-        self.blank = pygame.image.load(image("menu4.png"))
-        self.buttonPos = self.blank.get_width() / 2
-        self.resume = pygame.image.load(image("resume.png"))
-        self.resumePos = getCenter(self.resume, -10, (GameConstants.GAMEHEIGHT / 7.2))
-        self.exit = pygame.image.load(image("exit.png"))
-        self.exitPos = getCenter(self.exit, -10, (GameConstants.GAMEHEIGHT / 2.9))
-        self.overlay = pygame.image.load(image("selectOverlay.png"))
-        self.selected = "resume"
-        self.cooldown = 0
+class MainMenu():
+    blank = pygame.image.load(image("menu4.png"))
+    buttonPos = self.blank.get_width() / 2
+    resume = pygame.image.load(image("resume.png"))
+    resumePos = getCenter(self.resume, -10, (GameConstants.GAMEHEIGHT / 7.2))
+    exit = pygame.image.load(image("exit.png"))
+    exitPos = getCenter(self.exit, -10, (GameConstants.GAMEHEIGHT / 2.9))
+    overlay = pygame.image.load(image("selectOverlay.png"))
+    selected = "resume"
+    cooldown = 0
 
     def update(self):
         self.screen.blit(self.blank, getCenter(self.blank))
