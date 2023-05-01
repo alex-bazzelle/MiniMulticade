@@ -124,8 +124,9 @@ while alive:
 
     clock.tick(FPS)
 
-    #draw background
-    draw_bg()
+    if not paused:
+    	#draw background
+    	draw_bg()
 
     # get key presses
     key = pygame.key.get_pressed()
@@ -174,13 +175,14 @@ while alive:
             intro_count -= 1
             last_count_update = pygame.time.get_ticks()
 
-    #update fighters
-    fighter_1.update()
-    fighter_2.update()
+    if not paused:
+    	#update fighters
+    	fighter_1.update()
+    	fighter_2.update()
 
-    #draw fighters
-    fighter_1.draw(screen)
-    fighter_2.draw(screen)
+    	#draw fighters
+    	fighter_1.draw(screen)
+    	fighter_2.draw(screen)
 
     #check for player defeat
     if round_over == False:
